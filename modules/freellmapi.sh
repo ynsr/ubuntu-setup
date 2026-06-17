@@ -16,6 +16,7 @@
 readonly FREELLMAPI_DEFAULT_DOMAIN="freellmapi.evx.imageanalysisgroup.top"
 readonly FREELLMAPI_DEFAULT_PORT="3001"
 readonly FREELLMAPI_TEMPLATE="${SCRIPT_DIR}/templates/freellmapi.nginx.conf.tpl"
+readonly FREELLMAPI_TEMPLATE_HTTP="${SCRIPT_DIR}/templates/freellmapi.nginx.conf.http-only.tpl"
 
 setup_freellmapi() {
   local force_renew="${1:-false}"
@@ -41,17 +42,20 @@ setup_freellmapi() {
   clean_nginx_conflicts
   stop_port_listener "$api_port"
 
-  log "Creating Nginx site configuration for ${domain}..."
+  log "Creating HTTP-only Nginx configuration for ${domain}..."
   mkdir -p "$webroot"
-  DOMAIN="$domain" API_PORT="$api_port" WEBROOT="$webroot" \
-    envsubst '${DOMAIN} ${API_PORT} ${WEBROOT}' < "$FREELLMAPI_TEMPLATE" > "$site_available"
+  DOMAIN="$domain" \
+    envsubst '${DOMAIN}' < "$FREELLMAPI_TEMPLATE_HTTP" > "$site_available"
   enable_nginx_site "$site_available" "$site_enabled"
-  success "Nginx site configuration created"
+  success "HTTP-only Nginx configuration created"
 
-  test_nginx
   start_nginx
 
   obtain_ssl_webroot "$domain" "$webroot" "$cert_file" "$force_renew"
+
+  log "Upgrading to HTTPS configuration..."
+  DOMAIN="$domain" API_PORT="$api_port" WEBROOT="$webroot" \
+    envsubst '${DOMAIN} ${API_PORT} ${WEBROOT}' < "$FREELLMAPI_TEMPLATE" > "$site_available"
 
   test_nginx
   reload_nginx

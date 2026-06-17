@@ -34,7 +34,8 @@ nginx-setup/
 │   ├── xray.sh                       # placeholder (not implemented)
 │   └── ccr.sh                        # placeholder (not implemented)
 ├── templates/
-│   └── freellmapi.nginx.conf.tpl     # Nginx server-block template
+│   ├── freellmapi.nginx.conf.tpl          # Full HTTPS Nginx template
+│   └── freellmapi.nginx.conf.http-only.tpl # HTTP-only template for initial setup
 └── README.md
 ```
 
@@ -79,13 +80,13 @@ What it does, in order:
    fail, if it doesn't match — useful for split IPv4/IPv6 setups).
 4. Removes conflicting/default Nginx site configs.
 5. Stops anything already listening on the chosen port.
-6. Renders `templates/freellmapi.nginx.conf.tpl` into
-   `/etc/nginx/sites-available/<domain>` and enables it.
-7. Tests and starts Nginx.
+6. Renders an HTTP-only Nginx config and enables it.
+7. Starts Nginx.
 8. Obtains a Let's Encrypt certificate via the webroot method (skips
    renewal if the existing cert is valid for 30+ days).
-9. Reloads Nginx and installs a daily cron job for automatic renewal.
-10. Prints a summary with the panel URL, API base URL, and health-check URL.
+9. Upgrades to the full HTTPS config, tests and reloads Nginx.
+10. Installs a daily cron job for automatic renewal.
+11. Prints a summary with the panel URL, API base URL, and health-check URL.
 
 ### Force SSL renewal
 
@@ -110,7 +111,8 @@ expiry. Applies to whichever module you select that supports it
    sourced by `setup.sh` before your module runs.
 2. If you need an Nginx server block, drop a template in
    `templates/<name>.nginx.conf.tpl` and render it with `envsubst`, the
-   same way `modules/freellmapi.sh` does.
+   same way `modules/freellmapi.sh` does. Use a separate `.http-only.tpl`
+   template if the module needs to start Nginx before SSL certificates exist.
 3. In `setup.sh`:
    - `source "${SCRIPT_DIR}/modules/<name>.sh"`
    - add the menu label to the `prompt_menu` call
